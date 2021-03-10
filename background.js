@@ -62,6 +62,7 @@ const basicNotification = (title, message, icon, priority) => {
     iconUrl: icon,
     priority: priority,
     type: "basic",
+    requireInteraction: true
   };
   chrome.notifications.create("basicnotification", opt, function (notificationId) {
     console.log(notificationId);
