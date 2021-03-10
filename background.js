@@ -58,7 +58,7 @@ const priceK = (price, fixed = 1) => {
 };
 
 const formatPrice = (price) => `${price}K`;
-const Alert = (variation) => `[BTCUSDT] Abnormal Volatility Alert  (15m) -> ${variation}%`;
+const Alert = (pair, variation) => `[${pair}] Abnormal Volatility Alert  (15m) -> ${variation}%`;
 
 
 const BTCHandler = (data) => {
@@ -71,8 +71,8 @@ const BTCHandler = (data) => {
   }
   chrome.browserAction.setBadgeText({ text: formatPrice(priceK(quotation.BTC.price)) });
   chrome.browserAction.setBadgeBackgroundColor({ color: quotation.BTC.variation > 0 ? GREEN : RED });
-  if (Math.abs(quotation.BTC.variation - prevVariation) >= 1) {
-    alert(Alert(quotation.BTC.variation.toFixed(2)));
+  if (Math.abs(quotation.BTC.variation - prevVariation.ETH) >= 1) {
+    alert(Alert("BTCUSDT", quotation.BTC.variation.toFixed(2)));
   }
 }
 
@@ -83,6 +83,10 @@ const ETHHandler = (data) => {
   } else {
     prevVariation.ETH = quotation.ETH.variation;
     quotation.ETH = getCleanedData(data, "ETH", "USDT");
+  }
+
+  if (Math.abs(quotation.ETH.variation - prevVariation.ETH) >= 1) {
+    alert(Alert("ETHUSDT", quotation.ETH.variation.toFixed(2)));
   }
 
   console.log(quotation)
