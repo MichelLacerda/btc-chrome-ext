@@ -4,13 +4,13 @@ const RED = [220, 53, 69, 255];
 const GREEN = [40, 167, 69, 255];
 
 let quotation = {
-  "BTC": null,
-  "ETH": null
+  BTC: null,
+  ETH: null,
 };
 
 let prevVariation = {
-  "BTC": 0,
-  "ETH": 0
+  BTC: 0,
+  ETH: 0,
 };
 
 const getCleanedData = (data, base, quote) => {
@@ -53,13 +53,50 @@ const EXEMPLO = {
   count: 2154558,
 };
 
+const getIcon = (base) => `icons/${base.toLowerCase()}.svg`;
+
+const basicNotification = (title, message, icon, priority) => {
+  var opt = {
+    title: title,
+    message: message,
+    iconUrl: icon,
+    priority: priority,
+    type: "basic",
+  };
+  chrome.notifications.create("basicnotification", opt, function (notificationId) {
+    console.log(notificationId);
+  });
+};
+
+const notificationVariation = (pair, variation) => {
+  var icon = getIcon(pair.substr(0, 3));
+  var message = () => `Abnormal Volatility Alert (15m) = ${variation}%`;
+  basicNotification(pair, message(), icon, 2);
+};
+
+const nose = (price, target, operator) => {
+  const message = () => `The price hit the target ${price} ${operator} ${target}`;
+  switch (operator) {
+    case ">=":
+      if (price >= target) {
+        basicNotification("Nose", message(), "icons/fire.svg", 2);
+      }
+      break;
+    case "<=":
+      if (price <= target) {
+        basicNotification("Nose", message(), "icons/fire.svg", 2);
+      }
+      break;
+    default:
+      break;
+  }
+};
+
 const priceK = (price, fixed = 1) => {
   return (price / 1000).toFixed(fixed);
 };
 
 const formatPrice = (price) => `${price}K`;
-const Alert = (pair, variation) => `[${pair}] Abnormal Volatility Alert  (15m) -> ${variation}%`;
-
 
 const BTCHandler = (data) => {
   if (!quotation.BTC) {
@@ -72,9 +109,9 @@ const BTCHandler = (data) => {
   chrome.browserAction.setBadgeText({ text: formatPrice(priceK(quotation.BTC.price)) });
   chrome.browserAction.setBadgeBackgroundColor({ color: quotation.BTC.variation > 0 ? GREEN : RED });
   if (Math.abs(quotation.BTC.variation - prevVariation.ETH) >= 1) {
-    alert(Alert("BTCUSDT", quotation.BTC.variation.toFixed(2)));
+    notificationVariation("BTCUSDT", quotation.BTC.variation.toFixed(2));
   }
-}
+};
 
 const ETHHandler = (data) => {
   if (!quotation.ETH) {
@@ -86,21 +123,19 @@ const ETHHandler = (data) => {
   }
 
   if (Math.abs(quotation.ETH.variation - prevVariation.ETH) >= 1) {
-    alert(Alert("ETHUSDT", quotation.ETH.variation.toFixed(2)));
+    notificationVariation("ETHUSDT", quotation.ETH.variation.toFixed(2));
   }
-
-  console.log(quotation)
-}
+};
 
 const Handler = {
-  "BTCUSDT": BTCHandler,
-  "ETHUSDT": ETHHandler,
-}
+  BTCUSDT: BTCHandler,
+  ETHUSDT: ETHHandler,
+};
 
 const fetchAll = () => {
   fetchApi("BTCUSDT");
   fetchApi("ETHUSDT");
-}
+};
 
 const fetchApi = (pair) => {
   chrome.browserAction.setBadgeText({ text: "..." });
@@ -108,13 +143,13 @@ const fetchApi = (pair) => {
     .then(function (response) {
       response.json().then(function (data) {
         Handler[pair](data);
+        nose(data.lastPrice, 56800, ">=");
       });
     })
     .catch(function (err) {
       console.error("Failed retrieving information", err);
     });
 };
-
 
 fetchAll();
 
