@@ -74,20 +74,34 @@ const notificationVariation = (pair, variation) => {
   basicNotification(pair, message(), icon, 2);
 };
 
-const nose = (price, target, operator) => {
-  const message = () => `The price hit the target ${price} ${operator} ${target}`;
-  switch (operator) {
+const removeNose = (id) => {
+  chrome.storage.sync.get(["nose"], function (res) {
+    if (res.nose) {
+      var filtered = res.nose.length ? res.nose.filter((n) => n.id !== id) : [];
+      chrome.storage.sync.set({ nose: filtered }, function () {
+        console.log("saved...");
+      });
+    }
+  });
+};
+
+const nose = (nose) => {
+  const message = () => `The price hit the target ${nose.price} ${nose.operator} ${nose.target}`;
+  switch (nose.operator) {
     case ">=":
       if (price >= target) {
         basicNotification("Nose", message(), "icons/fire.svg", 2);
+        removeNose(node.id);
       }
       break;
     case "<=":
       if (price <= target) {
         basicNotification("Nose", message(), "icons/fire.svg", 2);
+        removeNose(node.id);
       }
       break;
     default:
+      console.log("nothing noses");
       break;
   }
 };
@@ -154,7 +168,7 @@ const fetchApi = (pair) => {
 fetchAll();
 
 const ONE_MINUTE_IN_MS = 60000;
-const MINUTES = 15;
+const MINUTES = 10;
 
 setInterval(fetchAll, ONE_MINUTE_IN_MS * MINUTES);
 

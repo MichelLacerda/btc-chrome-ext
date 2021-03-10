@@ -1,52 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous" />
 
-    
     <title>BTC</title>
     <style>
-        html, body {
-            background-color: #222831;
-            color: #ececec;
-            font-family: 'Roboto', sans-serif;
-            font-size: 16px;
-            width: 300px;
-            margin: 0;
-            padding: 0;
-        }
-        table {
-        }
-        ul {
-            list-style: none;
-        }
-        ul li {
-            margin-bottom: 5px;
-        }
-        img {
-            /* margin-bottom: -3px;
+      html,
+      body {
+        background-color: #222831;
+        color: #ececec;
+        font-family: "Roboto", sans-serif;
+        font-size: 16px;
+        width: 300px;
+        margin: 0;
+        padding: 0;
+      }
+      table {
+      }
+      ul {
+        list-style: none;
+      }
+      ul li {
+        margin-bottom: 5px;
+      }
+      img {
+        /* margin-bottom: -3px;
             margin-right: 10px; */
-        }
-        strong {
-            color: #f2a365;
-        }
-        .middle-color  {
-            color: #30475e;
-        }
-        .positive {
-            color: #1e7e34!important;
-        }
-        .negative {
-            color: #bd2130!important;
-        }
-
+      }
+      strong {
+        color: #f2a365;
+      }
+      .middle-color {
+        color: #30475e;
+      }
+      .positive {
+        color: #1e7e34 !important;
+      }
+      .negative {
+        color: #bd2130 !important;
+      }
     </style>
-</head>
-<body>
-    <table id="app" style="padding: 10px; width: 100%;"></table>
+  </head>
+  <body>
+    <div class="row g-1">
+      <table id="app" style="padding: 10px" class="col-12"></table>
+    </div>
+    <div class="row"><hr /></div>
+    <form class="row g-2" style="padding: 10px 10px 0 10px" id="addNoseForm">
+      <div class="col-3">
+        <input class="form-control" list="pairOptions" id="pair" placeholder="Pair" required />
+        <datalist id="pairOptions">
+          <option value="BTCUSDT"></option>
+          <option value="ETHUSDT"></option>
+        </datalist>
+      </div>
+      <div class="col-4">
+        <input type="text" class="form-control" id="target" placeholder="58000" required />
+      </div>
+      <div class="col-3">
+        <input class="form-control" list="operatorOptions" id="operator" placeholder="Opr.." required />
+        <datalist id="operatorOptions">
+          <option value=">="></option>
+          <option value="<="></option>
+        </datalist>
+      </div>
+      <div class="col-2">
+        <button type="submit" class="btn btn-primary mb-3" id="addNose">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-bookmark-plus-fill" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M2 15.5V2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.74.439L8 13.069l-5.26 2.87A.5.5 0 0 1 2 15.5zm6.5-11a.5.5 0 0 0-1 0V6H6a.5.5 0 0 0 0 1h1.5v1.5a.5.5 0 0 0 1 0V7H10a.5.5 0 0 0 0-1H8.5V4.5z" />
+          </svg>
+        </button>
+      </div>
+    </form>
+    <div id="noses">
+        <div class="row g-2" id="nose" style="padding: 10px">
+          <div class="col-10">
+              <div class="row">
+                  <div class="col-5"><h6 style="margin-top: 8px; text-align: right;" >BTCUSDT</h6></div>
+                  <div class="col-2"><h5 style="margin-top: 4px; text-align: center;" class="text-warning">>=</h5></div>
+                  <div class="col-5"><h6 style="margin-top: 8px; text-align: left;">58000</h6></div>
+              </div>
+          </div>
+          <div class="col-2">
+            <div class="btn btn-danger mb-3" id="deleteNose" data-id="${id}">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">
+                <path
+                  d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+    </div>
     <script src="popup.js"></script>
-</body>
+  </body>
 </html>

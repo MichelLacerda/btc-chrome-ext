@@ -15,5 +15,5 @@
     "icons": {
         "16": "btc_icon.png"
     },
-    "permissions": ["notifications"]
+    "permissions": ["storage", "notifications"]
 }
