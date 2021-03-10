@@ -3,14 +3,21 @@ const URL_TO_FETCH = (pair) => `https://api1.binance.com/api/v3/ticker/24hr?symb
 const RED = [220, 53, 69, 255];
 const GREEN = [40, 167, 69, 255];
 
-let quotation = null;
-let prevVariation = 0;
+let quotation = {
+  "BTC": null,
+  "ETH": null
+};
 
-const getCleanedData = (data) => {
+let prevVariation = {
+  "BTC": 0,
+  "ETH": 0
+};
+
+const getCleanedData = (data, base, quote) => {
   return {
     pair: data.symbol,
-    base: "BTC",
-    quote: "USDT",
+    base: base,
+    quote: quote,
     price: parseFloat(data.lastPrice),
     variation: parseFloat(data.priceChangePercent),
     ohlc: {
@@ -52,35 +59,65 @@ const priceK = (price, fixed = 1) => {
 
 const formatPrice = (price) => `${price}K`;
 const Alert = (variation) => `[BTCUSDT] Abnormal Volatility Alert  (15m) -> ${variation}%`;
-const fetchApi = () => {
-  chrome.browserAction.setBadgeText({ text: "loading.." });
-  fetch(URL_TO_FETCH("BTCUSDT"))
+
+
+const BTCHandler = (data) => {
+  if (!quotation.BTC) {
+    quotation.BTC = getCleanedData(data, "BTC", "USDT");
+    prevVariation.BTC = quotation.BTC.variation;
+  } else {
+    prevVariation.BTC = quotation.BTC.variation;
+    quotation.BTC = getCleanedData(data, "BTC", "USDT");
+  }
+  chrome.browserAction.setBadgeText({ text: formatPrice(priceK(quotation.BTC.price)) });
+  chrome.browserAction.setBadgeBackgroundColor({ color: quotation.BTC.variation > 0 ? GREEN : RED });
+  if (Math.abs(quotation.BTC.variation - prevVariation) >= 1) {
+    alert(Alert(quotation.BTC.variation.toFixed(2)));
+  }
+}
+
+const ETHHandler = (data) => {
+  if (!quotation.ETH) {
+    quotation.ETH = getCleanedData(data, "ETH", "USDT");
+    prevVariation.ETH = quotation.ETH.variation;
+  } else {
+    prevVariation.ETH = quotation.ETH.variation;
+    quotation.ETH = getCleanedData(data, "ETH", "USDT");
+  }
+
+  console.log(quotation)
+}
+
+const Handler = {
+  "BTCUSDT": BTCHandler,
+  "ETHUSDT": ETHHandler,
+}
+
+const fetchAll = () => {
+  fetchApi("BTCUSDT");
+  fetchApi("ETHUSDT");
+}
+
+const fetchApi = (pair) => {
+  chrome.browserAction.setBadgeText({ text: "..." });
+  fetch(URL_TO_FETCH(pair))
     .then(function (response) {
       response.json().then(function (data) {
-        if (!quotation) {
-          quotation = getCleanedData(data);
-          prevVariation = quotation.variation;
-        } else {
-          prevVariation = quotation.variation;
-          quotation = getCleanedData(data);
-        }
-        chrome.browserAction.setBadgeText({ text: formatPrice(priceK(quotation.price)) });
-        chrome.browserAction.setBadgeBackgroundColor({ color: quotation.variation > 0 ? GREEN : RED });
-        if (Math.abs(quotation.variation - prevVariation) >= 1) {
-          alert(Alert(quotation.variation.toFixed(2)));
-        }
+        Handler[pair](data);
       });
     })
     .catch(function (err) {
       console.error("Failed retrieving information", err);
     });
 };
-fetchApi();
+
+
+fetchAll();
 
 const ONE_MINUTE_IN_MS = 60000;
 const MINUTES = 15;
 
-setInterval(fetchApi, ONE_MINUTE_IN_MS * MINUTES);
+setInterval(fetchAll, ONE_MINUTE_IN_MS * MINUTES);
 
 chrome.extension.onConnect.addListener(function (port) {
   port.postMessage(quotation);
