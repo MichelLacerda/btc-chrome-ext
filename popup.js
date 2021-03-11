@@ -130,13 +130,11 @@ addNoseFormEl.addEventListener("submit", function (ev) {
 
 const removeNose = (id, callback) => {
   chrome.storage.sync.get(["nose"], function (res) {
-    if (res.nose) {
-      var filtered = res.nose.length ? res.nose.filter((n) => n.id !== id) : [];
-      chrome.storage.sync.set({ nose: filtered }, function () {
-        console.log("saved...");
-        callback();
-      });
-    }
+    var filtered = res.nose.length ? res.nose.filter((n) => n.id !== id) : [];
+    chrome.storage.sync.set({ nose: filtered }, function () {
+      console.log("saved...");
+      callback();
+    });
   });
 };
 
@@ -171,29 +169,33 @@ const viewNose = () => {
   const nosesEl = document.getElementById("noses");
   nosesEl.innerHTML = "";
   chrome.storage.sync.get(["nose"], function (result) {
-    if (result.nose) {
-      for (nose of result.nose) {
-        var div = document.createElement("div");
-        div.classList.add("row");
-        div.classList.add("g-2");
-        div.style.padding = "10px";
-        div.innerHTML = html(nose);
-        nosesEl.append(div);
-      }
-
-      bindNosesRemove();
+    for (let nose of result.nose) {
+      var div = document.createElement("div");
+      div.classList.add("row");
+      div.classList.add("g-2");
+      div.style.padding = "10px";
+      div.innerHTML = html(nose);
+      nosesEl.append(div);
     }
+    bindNosesRemove();
   });
 };
 
 const app = document.getElementById("app");
 
-port.onMessage.addListener(function (data) {
-  var BTC = data.BTC;
-  var ETH = data.ETH;
-  app.innerHTML = "";
-  addHeader(app, BTC);
-  addSeparator(app, 4, "20px");
-  addHeader(app, ETH);
-  viewNose();
+const getQuotation = (callback) => {
+  chrome.storage.sync.get(["quotation"], (res) => {
+    callback(res.quotation);
+  });
+};
+
+
+port.onMessage.addListener(function (msg) {
+  getQuotation((quotation) => {
+    app.innerHTML = "";
+    addHeader(app, quotation.BTCUSDT);
+    addSeparator(app, 4, "20px");
+    addHeader(app, quotation.ETHUSDT);
+    viewNose();
+  })
 });

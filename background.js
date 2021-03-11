@@ -1,17 +1,8 @@
 const URL_TO_FETCH = (pair) => `https://api1.binance.com/api/v3/ticker/24hr?symbol=${pair}`;
+const makeId = () => Math.random().toString(36).substring(7);
 
 const RED = [220, 53, 69, 255];
 const GREEN = [40, 167, 69, 255];
-
-let quotation = {
-  BTC: null,
-  ETH: null,
-};
-
-let prevVariation = {
-  BTC: 0,
-  ETH: 0,
-};
 
 const getCleanedData = (data, base, quote) => {
   return {
@@ -62,9 +53,9 @@ const basicNotification = (title, message, icon, priority) => {
     iconUrl: icon,
     priority: priority,
     type: "basic",
-    requireInteraction: true
+    requireInteraction: true,
   };
-  chrome.notifications.create("basicnotification", opt, function (notificationId) {
+  chrome.notifications.create("basicnotification" + makeId(), opt, function (notificationId) {
     console.log(notificationId);
   });
 };
@@ -77,28 +68,26 @@ const notificationVariation = (pair, variation) => {
 
 const removeNose = (id) => {
   chrome.storage.sync.get(["nose"], function (res) {
-    if (res.nose) {
-      var filtered = res.nose.length ? res.nose.filter((n) => n.id !== id) : [];
-      chrome.storage.sync.set({ nose: filtered }, function () {
-        console.log("saved...");
-      });
-    }
+    var filtered = res.nose.length ? res.nose.filter((n) => n.id !== id) : [];
+    chrome.storage.sync.set({ nose: filtered }, function () {
+      console.log("saved...");
+    });
   });
 };
 
-const nose = (nose) => {
-  const message = () => `The price hit the target ${nose.price} ${nose.operator} ${nose.target}`;
+const gotNose = (price, nose) => {
+  const message = () => `The price hit the target ${price} ${nose.operator} ${nose.target}`;
   switch (nose.operator) {
     case ">=":
-      if (price >= target) {
-        basicNotification("Nose", message(), "icons/fire.svg", 2);
-        removeNose(node.id);
+      if (price >= nose.target) {
+        basicNotification(nose.pair, message(), "icons/fire.svg", 2);
+        removeNose(nose.id);
       }
       break;
     case "<=":
-      if (price <= target) {
-        basicNotification("Nose", message(), "icons/fire.svg", 2);
-        removeNose(node.id);
+      if (price <= nose.target) {
+        basicNotification(nose.pair, message(), "icons/fire.svg", 2);
+        removeNose(nose.id);
       }
       break;
     default:
@@ -113,33 +102,54 @@ const priceK = (price, fixed = 1) => {
 
 const formatPrice = (price) => `${price}K`;
 
+const getQuotation = (callback) => {
+  chrome.storage.sync.get(["quotation"], (res) => {
+    callback(res.quotation);
+  });
+};
+
+const setQuotation = (pair, quotation) => {
+  getQuotation((value) => {
+    var tmpQuotation = value;
+    tmpQuotation[pair] = quotation;
+    chrome.storage.sync.set({ quotation: tmpQuotation }, () => {
+      console.log("saved..");
+    });
+  });
+};
+
 const BTCHandler = (data) => {
-  if (!quotation.BTC) {
-    quotation.BTC = getCleanedData(data, "BTC", "USDT");
-    prevVariation.BTC = quotation.BTC.variation;
-  } else {
-    prevVariation.BTC = quotation.BTC.variation;
-    quotation.BTC = getCleanedData(data, "BTC", "USDT");
-  }
-  chrome.browserAction.setBadgeText({ text: formatPrice(priceK(quotation.BTC.price)) });
-  chrome.browserAction.setBadgeBackgroundColor({ color: quotation.BTC.variation > 0 ? GREEN : RED });
-  if (Math.abs(quotation.BTC.variation - prevVariation.ETH) >= 1) {
-    notificationVariation("BTCUSDT", quotation.BTC.variation.toFixed(2));
-  }
+  getQuotation((res) => {
+    let pair = "BTCUSDT";
+    let prevPrice = typeof res[pair] === "number" ? res[pair] : res[pair].price;
+    let currQuotation = getCleanedData(data, "BTC", "USDT");
+    let currPrice = currQuotation.price;
+    setQuotation(pair, currQuotation);
+
+    let variation = 1 - prevPrice / currPrice;
+    if (prevPrice !== 0 && Math.abs(variation) >= 0.025) {
+      notificationVariation("BTCUSDT: $" + currPrice.toLocaleString(), prevPrice.toFixed(2).toString());
+    }
+
+    var formatedPrice = formatPrice(priceK(currPrice));
+    chrome.browserAction.setBadgeText({ text: formatedPrice });
+    chrome.browserAction.setBadgeBackgroundColor({ color: variation > 0 ? GREEN : RED });
+  });
 };
 
 const ETHHandler = (data) => {
-  if (!quotation.ETH) {
-    quotation.ETH = getCleanedData(data, "ETH", "USDT");
-    prevVariation.ETH = quotation.ETH.variation;
-  } else {
-    prevVariation.ETH = quotation.ETH.variation;
-    quotation.ETH = getCleanedData(data, "ETH", "USDT");
-  }
+  getQuotation((res) => {
+    let pair = "ETHUSDT";
+    let prevPrice = typeof res[pair] === "number" ? res[pair] : res[pair].price;
+    let currQuotation = getCleanedData(data, "ETH", "USDT");
+    let currPrice = currQuotation.price;
+    setQuotation(pair, currQuotation);
 
-  if (Math.abs(quotation.ETH.variation - prevVariation.ETH) >= 1) {
-    notificationVariation("ETHUSDT", quotation.ETH.variation.toFixed(2));
-  }
+    let variation = 1 - prevPrice / currPrice;
+    if (prevPrice !== 0 && Math.abs(variation) >= 0.025) {
+      notificationVariation("ETHUSDT: $" + currPrice.toLocaleString(), prevPrice.toFixed(2).toString());
+    }
+  });
 };
 
 const Handler = {
@@ -158,7 +168,11 @@ const fetchApi = (pair) => {
     .then(function (response) {
       response.json().then(function (data) {
         Handler[pair](data);
-        nose(data.lastPrice, 56800, ">=");
+        chrome.storage.sync.get(["nose"], (res) => {
+          for (let nose of res.nose) {
+            gotNose(parseFloat(data.lastPrice), nose);
+          }
+        });
       });
     })
     .catch(function (err) {
@@ -169,13 +183,20 @@ const fetchApi = (pair) => {
 fetchAll();
 
 const ONE_MINUTE_IN_MS = 60000;
-const MINUTES = 10;
+const MINUTES = 15;
 
 setInterval(fetchAll, ONE_MINUTE_IN_MS * MINUTES);
 
 chrome.extension.onConnect.addListener(function (port) {
-  port.postMessage(quotation);
+  /* getQuotation((quotation) => {
+    console.log(quotation);
+  }); */
+  port.postMessage(true);
   /* port.onMessage.addListener(function (msg) {
     // fetchApi();
   }); */
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.storage.sync.set({ nose: [], quotation: { BTCUSDT: 0, ETHUSDT: 0 } });
 });
