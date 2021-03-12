@@ -1,6 +1,6 @@
 {
     "name": "BTC Price Monitoring",
-    "version": "1.0",
+    "version": "1.0.1",
     "description": "Stay on top of daily Bitcoin variations. Add pricing rules and get notified.",
     "manifest_version": 2,
     "background": {
